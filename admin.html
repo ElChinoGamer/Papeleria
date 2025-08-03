@@ -3,161 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Panel del Encargado - Eidos</title>
+  <title>Panel de productos - Eidos</title>
   <style>
-    body {
-      background-color: #262626;
-      color: #D9B44A;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 2rem;
-    }
-    h1 {
-      font-size: 2.2rem;
-    }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      background-color: #D9B44A;
-      color: #262626;
+    body { font-family: Arial, sans-serif; background: #262626; color: #fff; padding: 20px; }
+    input, textarea, button {
+      display: block;
+      margin-bottom: 10px;
+      padding: 10px;
+      width: 100%;
+      max-width: 400px;
+      background: #A6A6A6;
       border: none;
-      border-radius: 5px;
+      color: #000;
+    }
+    button:hover {
+      background: #D9B44A;
+      color: #000;
       cursor: pointer;
     }
-    input, select {
-      padding: 8px;
-      margin: 5px;
-      border-radius: 5px;
-      border: none;
-    }
-    #resultado {
-      margin-top: 20px;
-      white-space: pre-wrap;
-    }
-    .formulario {
-      display: none;
-      margin-top: 15px;
+    .producto {
+      border: 1px solid #D9B44A;
+      padding: 10px;
+      margin-top: 10px;
+      background: #333;
     }
   </style>
 </head>
 <body>
-  <h1>Panel del Encargado - Papelería Eidos</h1>
-  <p>Gestión de productos:</p>
+  <h1>Agregar productos a Eidos</h1>
+  <form id="productoForm">
+    <input type="text" id="nombre" placeholder="Nombre del producto" required />
+    <input type="number" id="precio" placeholder="Precio" required />
+    <textarea id="descripcion" placeholder="Descripción" required></textarea>
+    <button type="submit">Guardar producto</button>
+  </form>
 
-  <input type="text" id="idProducto" placeholder="ID del producto" />
+  <h2>Productos guardados</h2>
+  <div id="listaProductos"></div>
 
-  <div class="formulario" id="formulario">
-    <input type="text" id="nombre" placeholder="Nombre" />
-    <input type="text" id="marca" placeholder="Marca" />
-    <input type="number" id="precio" placeholder="Precio" />
-  </div>
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
 
-  <div>
-    <button onclick="mostrarFormularioAgregar()">Agregar</button>
-    <button onclick="leerProducto()">Leer</button>
-    <button onclick="actualizarProducto()">Actualizar</button>
-    <button onclick="borrarProducto()">Borrar</button>
-    <button onclick="mostrarTodos()">Mostrar todos</button>
-  </div>
-
-  <pre id="resultado"></pre>
-
-  <!-- Scripts de Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
-
-  <!-- Funciones CRUD -->
-  <script>
-    const resultado = document.getElementById('resultado');
-    const formulario = document.getElementById('formulario');
-
-    function mostrarFormularioAgregar() {
-      formulario.style.display = 'block';
-      resultado.textContent = 'Llenar los campos y dar click en "Agregar"';
-    }
-
-    function agregarProducto() {
-      const id = document.getElementById('idProducto').value;
-      const nombre = document.getElementById('nombre').value;
-      const marca = document.getElementById('marca').value;
-      const precio = parseFloat(document.getElementById('precio').value);
-
-      db.collection("productos").doc(id).set({ nombre, marca, precio })
-        .then(() => {
-          resultado.textContent = "Producto agregado exitosamente.";
-          formulario.style.display = 'none';
-        })
-        .catch((error) => {
-          resultado.textContent = "Error al agregar: " + error;
-        });
-    }
-
-    function leerProducto() {
-      const id = document.getElementById('idProducto').value;
-
-      db.collection("productos").doc(id).get()
-        .then((doc) => {
-          if (doc.exists) {
-            const data = doc.data();
-            resultado.textContent = Nombre: ${data.nombre}\nMarca: ${data.marca}\nPrecio: $${data.precio};
-          } else {
-            resultado.textContent = "Producto no encontrado.";
-          }
-        })
-        .catch((error) => {
-          resultado.textContent = "Error al leer: " + error;
-        });
-    }
-
-    function actualizarProducto() {
-      const id = document.getElementById('idProducto').value;
-      const nombre = document.getElementById('nombre').value;
-      const marca = document.getElementById('marca').value;
-      const precio = parseFloat(document.getElementById('precio').value);
-
-      db.collection("productos").doc(id).update({ nombre, marca, precio })
-        .then(() => {
-          resultado.textContent = "Producto actualizado correctamente.";
-        })
-        .catch((error) => {
-          resultado.textContent = "Error al actualizar: " + error;
-        });
-    }
-
-    function borrarProducto() {
-      const id = document.getElementById('idProducto').value;
-
-      db.collection("productos").doc(id).delete()
-        .then(() => {
-          resultado.textContent = "Producto eliminado correctamente.";
-        })
-        .catch((error) => {
-          resultado.textContent = "Error al eliminar: " + error;
-        });
-    }
-
-    function mostrarTodos() {
-      resultado.textContent = "Cargando productos...";
-      db.collection("productos").get()
-        .then((querySnapshot) => {
-          let salida = "";
-          querySnapshot.forEach((doc) => {
-            const d = doc.data();
-            salida += ID: ${doc.id}\nNombre: ${d.nombre}\nMarca: ${d.marca}\nPrecio: $${d.precio}\n\n;
-          });
-          resultado.textContent = salida || "No hay productos aún.";
-        })
-        .catch((error) => {
-          resultado.textContent = "Error al obtener todos: " + error;
-        });
-    }
-
-    // Al hacer clic en Agregar después de mostrar formulario
-    formulario.addEventListener("change", () => {
-      // Si quieres agregar automáticamente al llenar el formulario
-      // o puedes poner un botón aparte para agregar después
-    });
-  </script>
+  <!-- Tu script de conexión -->
+  <script src="productos.js"></script>
 </body>
 </html>
+
