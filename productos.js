@@ -1,3 +1,4 @@
+// Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAHqZs-JDn86AY8NZ2mpUY_4n3-TfaQgVI",
   authDomain: "papeleriaf-9f0e2.firebaseapp.com",
@@ -20,42 +21,57 @@ form.addEventListener("submit", function (e) {
   const nombre = document.getElementById("nombre").value;
   const precio = parseFloat(document.getElementById("precio").value);
   const descripcion = document.getElementById("descripcion").value;
+  const id = document.getElementById("productoId").value;
 
-  if (!nombre || !precio || !descripcion) {
-    alert("Llena todos los campos");
-    return;
+  const producto = { nombre, precio, descripcion };
+
+  if (id) {
+    db.ref("productos/" + id).update(producto);
+  } else {
+    db.ref("productos").push(producto);
   }
 
-  const nuevoProducto = {
-    nombre,
-    precio,
-    descripcion
-  };
-
-  db.ref("productos").push(nuevoProducto)
-    .then(() => {
-      form.reset();
-    })
-    .catch((error) => {
-      console.error("Error al guardar producto:", error);
-    });
+  form.reset();
+  document.getElementById("productoId").value = "";
 });
 
+// Leer productos
 function mostrarProductos() {
   db.ref("productos").on("value", (snapshot) => {
     lista.innerHTML = "";
     snapshot.forEach((childSnapshot) => {
+      const id = childSnapshot.key;
       const producto = childSnapshot.val();
+
       const div = document.createElement("div");
       div.className = "producto";
       div.innerHTML = `
         <strong>${producto.nombre}</strong><br>
         $${producto.precio}<br>
         <em>${producto.descripcion}</em>
+        <div class="acciones">
+          <button onclick="editarProducto('${id}', '${producto.nombre}', ${producto.precio}, '${producto.descripcion}')">Editar</button>
+          <button onclick="eliminarProducto('${id}')">Eliminar</button>
+        </div>
       `;
       lista.appendChild(div);
     });
   });
+}
+
+// Editar
+function editarProducto(id, nombre, precio, descripcion) {
+  document.getElementById("nombre").value = nombre;
+  document.getElementById("precio").value = precio;
+  document.getElementById("descripcion").value = descripcion;
+  document.getElementById("productoId").value = id;
+}
+
+// Eliminar
+function eliminarProducto(id) {
+  if (confirm("¿Estás seguro de eliminar este producto?")) {
+    db.ref("productos/" + id).remove();
+  }
 }
 
 mostrarProductos();
