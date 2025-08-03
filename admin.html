@@ -8,7 +8,7 @@
       background-color: #262626;
       color: #D9B44A;
       font-family: sans-serif;
-      padding: 30px;
+      padding: 2rem;
     }
 
     h1 {
@@ -17,168 +17,153 @@
     }
 
     button {
+      margin: 10px;
+      padding: 10px 20px;
       background-color: #D9B44A;
       border: none;
       color: #262626;
-      padding: 10px 20px;
-      margin: 5px;
-      cursor: pointer;
       font-weight: bold;
+      cursor: pointer;
+      border-radius: 5px;
     }
 
-    input {
-      margin: 5px;
-      padding: 8px;
-    }
-
-    #resultado {
+    #resultado, #formulario {
       margin-top: 20px;
-      background-color: #1f1f1f;
-      padding: 15px;
+      background-color: #333;
+      padding: 20px;
       border-radius: 10px;
     }
 
-    .formulario {
+    input {
+      display: block;
+      margin: 10px 0;
+      padding: 5px;
+      width: 100%;
+    }
+
+    a {
+      display: block;
       margin-top: 20px;
+      text-align: center;
+      color: #A6A6A6;
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
-  <h1>Panel del encargado de Papelería Eidos</h1>
-  <a href="index.html" style="color: #A6A6A6; text-decoration: underline;">Cerrar sesión</a>
-
-  <div style="margin-top: 20px;">
-    <button onclick="mostrarTodos()">Leer todos</button>
-    <button onclick="leerProductoPorID()">Leer por ID</button>
+  <h1>Panel del encargado de Eidos</h1>
+  <div style="text-align:center;">
+    <button onclick="mostrarTodos()">Leer productos</button>
     <button onclick="mostrarFormularioAgregar()">Agregar producto</button>
-    <button onclick="actualizarProducto()">Actualizar por ID</button>
-    <button onclick="borrarProducto()">Borrar por ID</button>
+    <button onclick="mostrarFormularioActualizar()">Actualizar producto</button>
+    <button onclick="mostrarFormularioEliminar()">Eliminar producto</button>
   </div>
 
-  <div class="formulario" id="formulario"></div>
+  <div id="formulario"></div>
   <div id="resultado"></div>
 
-  <!-- Firebase Scripts -->
+  <a href="index.html">Cerrar sesión</a>
+
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
 
   <script>
-    const db = firebase.firestore();
     const resultado = document.getElementById("resultado");
     const formulario = document.getElementById("formulario");
 
     function mostrarTodos() {
-      resultado.innerHTML = "<h3>Productos registrados:</h3>";
+      resultado.innerHTML = "<strong>Cargando productos...</strong>";
       db.collection("productos").get().then(snapshot => {
+        let html = "<h3>Productos:</h3>";
         snapshot.forEach(doc => {
           const p = doc.data();
-          resultado.innerHTML += `
+          html += `
             <div>
-              <strong>${p.nombre}</strong> - ${p.marca} - $${p.precio}
-              <br><small>ID: ${doc.id}</small>
-              <hr>
+              <strong>ID:</strong> ${doc.id}<br>
+              <strong>Nombre:</strong> ${p.nombre}<br>
+              <strong>Marca:</strong> ${p.marca}<br>
+              <strong>Precio:</strong> $${p.precio}<br><br>
             </div>
           `;
         });
-      });
-    }
-
-    function leerProductoPorID() {
-      const id = prompt("ID del producto:");
-      if (!id) return;
-
-      db.collection("productos").doc(id).get().then(doc => {
-        if (doc.exists) {
-          const p = doc.data();
-          resultado.innerHTML = `
-            <h3>Producto encontrado:</h3>
-            <strong>${p.nombre}</strong><br>
-            Marca: ${p.marca}<br>
-            Precio: $${p.precio}<br>
-            ID: ${doc.id}
-          `;
-        } else {
-          resultado.innerHTML = "No se encontró el producto.";
-        }
+        resultado.innerHTML = html;
       });
     }
 
     function mostrarFormularioAgregar() {
       formulario.innerHTML = `
-        <h3>Agregar nuevo producto</h3>
-        <input type="text" id="nuevoNombre" placeholder="Nombre"><br>
-        <input type="text" id="nuevaMarca" placeholder="Marca"><br>
-        <input type="number" id="nuevoPrecio" placeholder="Precio"><br>
+        <h3>Agregar producto</h3>
+        <input id="id" placeholder="ID único">
+        <input id="nombre" placeholder="Nombre">
+        <input id="marca" placeholder="Marca">
+        <input id="precio" placeholder="Precio">
         <button onclick="agregarProducto()">Agregar</button>
       `;
     }
 
     function agregarProducto() {
-      const nombre = document.getElementById("nuevoNombre").value;
-      const marca = document.getElementById("nuevaMarca").value;
-      const precio = document.getElementById("nuevoPrecio").value;
+      const id = document.getElementById("id").value;
+      const nombre = document.getElementById("nombre").value;
+      const marca = document.getElementById("marca").value;
+      const precio = parseFloat(document.getElementById("precio").value);
 
-      if (nombre && marca && precio) {
-        db.collection("productos").add({
-          nombre,
-          marca,
-          precio: parseFloat(precio)
-        }).then(() => {
-          alert("Producto agregado.");
+      db.collection("productos").doc(id).set({ nombre, marca, precio })
+        .then(() => {
+          resultado.innerHTML = "<p>Producto agregado exitosamente ✅</p>";
           formulario.innerHTML = "";
-          mostrarTodos();
+        })
+        .catch(err => {
+          resultado.innerHTML = <p>Error: ${err.message}</p>;
         });
-      } else {
-        alert("Completa todos los campos.");
-      }
+    }
+
+    function mostrarFormularioActualizar() {
+      formulario.innerHTML = `
+        <h3>Actualizar producto</h3>
+        <input id="id" placeholder="ID del producto a actualizar">
+        <input id="nombre" placeholder="Nuevo nombre">
+        <input id="marca" placeholder="Nueva marca">
+        <input id="precio" placeholder="Nuevo precio">
+        <button onclick="actualizarProducto()">Actualizar</button>
+      `;
     }
 
     function actualizarProducto() {
-      const id = prompt("ID del producto a actualizar:");
-      if (!id) return;
+      const id = document.getElementById("id").value;
+      const nombre = document.getElementById("nombre").value;
+      const marca = document.getElementById("marca").value;
+      const precio = parseFloat(document.getElementById("precio").value);
 
-      db.collection("productos").doc(id).get().then(doc => {
-        if (!doc.exists) {
-          alert("Producto no encontrado.");
-          return;
-        }
-
-        const data = doc.data();
-        formulario.innerHTML = `
-          <h3>Actualizar producto</h3>
-          <input type="text" id="nuevoNombre" placeholder="Nombre" value="${data.nombre}"><br>
-          <input type="text" id="nuevaMarca" placeholder="Marca" value="${data.marca}"><br>
-          <input type="number" id="nuevoPrecio" placeholder="Precio" value="${data.precio}"><br>
-          <button onclick="guardarActualizacion('${id}')">Guardar</button>
-        `;
-      });
+      db.collection("productos").doc(id).update({ nombre, marca, precio })
+        .then(() => {
+          resultado.innerHTML = "<p>Producto actualizado ✅</p>";
+          formulario.innerHTML = "";
+        })
+        .catch(err => {
+          resultado.innerHTML = <p>Error: ${err.message}</p>;
+        });
     }
 
-    function guardarActualizacion(id) {
-      const nombre = document.getElementById("nuevoNombre").value;
-      const marca = document.getElementById("nuevaMarca").value;
-      const precio = document.getElementById("nuevoPrecio").value;
-
-      db.collection("productos").doc(id).update({
-        nombre,
-        marca,
-        precio: parseFloat(precio)
-      }).then(() => {
-        alert("Producto actualizado.");
-        formulario.innerHTML = "";
-        mostrarTodos();
-      });
+    function mostrarFormularioEliminar() {
+      formulario.innerHTML = `
+        <h3>Eliminar producto</h3>
+        <input id="id" placeholder="ID del producto">
+        <button onclick="eliminarProducto()">Eliminar</button>
+      `;
     }
 
-    function borrarProducto() {
-      const id = prompt("ID del producto a borrar:");
-      if (!id) return;
-
-      db.collection("productos").doc(id).delete().then(() => {
-        alert("Producto borrado.");
-        mostrarTodos();
-      });
+    function eliminarProducto() {
+      const id = document.getElementById("id").value;
+      db.collection("productos").doc(id).delete()
+        .then(() => {
+          resultado.innerHTML = "<p>Producto eliminado ❌</p>";
+          formulario.innerHTML = "";
+        })
+        .catch(err => {
+          resultado.innerHTML = <p>Error: ${err.message}</p>;
+        });
     }
   </script>
 </body>
