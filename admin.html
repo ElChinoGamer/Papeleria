@@ -3,37 +3,109 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CRUD de productos - Eidos</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #262626; color: #fff; padding: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #262626;
+      color: #fff;
+      padding: 20px;
+      max-width: 480px;
+      margin: auto;
+    }
     input, textarea, button {
       display: block;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       padding: 10px;
       width: 100%;
       max-width: 400px;
       background: #A6A6A6;
       border: none;
       color: #000;
+      border-radius: 5px;
+      font-size: 1rem;
+      transition: background-color 0.3s ease, transform 0.2s ease;
     }
-    button:hover {
+    input:focus, textarea:focus {
+      outline: 2px solid #D9B44A;
+      background-color: #ccc;
+      color: #000;
+      transform: scale(1.02);
+    }
+    button {
       background: #D9B44A;
       color: #000;
+      font-weight: bold;
       cursor: pointer;
+      border-radius: 5px;
+      box-shadow: 0 0 10px #D9B44A88;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
     }
+    button:hover {
+      background: #c79e3c;
+      box-shadow: 0 0 15px #c79e3ccc;
+      transform: scale(1.05);
+    }
+
+    /* Buscador */
+    #buscador {
+      margin-bottom: 20px;
+    }
+    #buscador input {
+      background-color: #1a1a1a;
+      border: 1px solid #A6A6A6;
+      color: #D9B44A;
+      font-weight: bold;
+    }
+    #buscador input::placeholder {
+      color: #888;
+    }
+
     .producto {
       border: 1px solid #D9B44A;
-      padding: 10px;
-      margin-top: 10px;
+      padding: 15px;
+      margin-top: 12px;
       background: #333;
+      border-radius: 6px;
+      box-shadow: 0 0 8px rgba(217, 180, 74, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .producto:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 20px rgba(217, 180, 74, 0.6);
+    }
+    .producto h3 {
+      color: #D9B44A;
+      margin-bottom: 8px;
+      transition: letter-spacing 0.3s ease;
+    }
+    .producto:hover h3 {
+      letter-spacing: 1.2px;
+    }
+    .producto p {
+      font-size: 0.95rem;
+      color: #ccc;
+      margin-bottom: 10px;
+    }
+    .acciones {
+      display: flex;
+      gap: 10px;
     }
     .acciones button {
-      margin-right: 5px;
       background: #A6A6A6;
+      color: #000;
+      padding: 7px 14px;
+      border-radius: 5px;
+      border: none;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      cursor: pointer;
+      flex: 1;
     }
     .acciones button:hover {
       background: #D9B44A;
+      transform: scale(1.05);
     }
   </style>
 </head>
@@ -43,10 +115,14 @@
   <form id="productoForm">
     <input type="text" id="nombre" placeholder="Nombre del producto" required />
     <input type="number" id="precio" placeholder="Precio" required />
-    <textarea id="descripcion" placeholder="Descripción" required></textarea>
+    <textarea id="descripcion" placeholder="Descripción" rows="3" required></textarea>
     <button type="submit">Guardar producto</button>
-    <input type="hidden" id="productoId">
+    <input type="hidden" id="productoId" />
   </form>
+
+  <section id="buscador">
+    <input type="text" id="inputBuscar" placeholder="Buscar producto por nombre..." />
+  </section>
 
   <h2>Lista de productos</h2>
   <div id="listaProductos"></div>
@@ -55,7 +131,98 @@
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
 
-  <!-- Lógica CRUD -->
-  <script src="productos.js"></script>
+  <!-- Lógica CRUD + buscador -->
+  <script>
+    // Config Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHqZs-JDn86AY8NZ2mpUY_4n3-TfaQgVI",
+      authDomain: "papeleriaf-9f0e2.firebaseapp.com",
+      databaseURL: "https://papeleriaf-9f0e2-default-rtdb.firebaseio.com",
+      projectId: "papeleriaf-9f0e2",
+      storageBucket: "papeleriaf-9f0e2.appspot.com",
+      messagingSenderId: "654877673833",
+      appId: "1:654877673833:web:101679a22ec915f50a95f8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const form = document.getElementById("productoForm");
+    const lista = document.getElementById("listaProductos");
+    const inputBuscar = document.getElementById("inputBuscar");
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const nombre = document.getElementById("nombre").value.trim();
+      const precio = parseFloat(document.getElementById("precio").value);
+      const descripcion = document.getElementById("descripcion").value.trim();
+      const id = document.getElementById("productoId").value;
+
+      if (!nombre || !precio || !descripcion) {
+        alert("Completa todos los campos.");
+        return;
+      }
+
+      const producto = { nombre, precio, descripcion };
+
+      if (id) {
+        db.ref("productos/" + id).update(producto);
+      } else {
+        db.ref("productos").push(producto);
+      }
+
+      form.reset();
+      document.getElementById("productoId").value = "";
+    });
+
+    function mostrarProductos() {
+      db.ref("productos").on("value", snapshot => {
+        lista.innerHTML = "";
+        snapshot.forEach(childSnapshot => {
+          const id = childSnapshot.key;
+          const { nombre, precio, descripcion } = childSnapshot.val();
+
+          const div = document.createElement("div");
+          div.className = "producto";
+          div.innerHTML = `
+            <h3>${nombre}</h3>
+            <p><strong>Precio:</strong> $${precio.toFixed(2)}</p>
+            <p>${descripcion}</p>
+            <div class="acciones">
+              <button onclick="editarProducto('${id}', '${nombre.replace(/'/g, "\\'")}', ${precio}, '${descripcion.replace(/'/g, \"\\'\")}')">Editar</button>
+              <button onclick="eliminarProducto('${id}')">Eliminar</button>
+            </div>
+          `;
+          lista.appendChild(div);
+        });
+      });
+    }
+
+    function editarProducto(id, nombre, precio, descripcion) {
+      document.getElementById("nombre").value = nombre;
+      document.getElementById("precio").value = precio;
+      document.getElementById("descripcion").value = descripcion;
+      document.getElementById("productoId").value = id;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function eliminarProducto(id) {
+      if (confirm("¿Estás seguro de eliminar este producto?")) {
+        db.ref("productos/" + id).remove();
+      }
+    }
+
+    // Buscador en vivo
+    inputBuscar.addEventListener("input", () => {
+      const filtro = inputBuscar.value.toLowerCase();
+      const productos = document.querySelectorAll(".producto");
+      productos.forEach(prod => {
+        const nombre = prod.querySelector("h3").textContent.toLowerCase();
+        prod.style.display = nombre.includes(filtro) ? "block" : "none";
+      });
+    });
+
+    mostrarProductos();
+  </script>
 </body>
 </html>
